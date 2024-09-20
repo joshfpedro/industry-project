@@ -1,0 +1,25 @@
+// Serendipity Button System Diagram
+digraph {
+	rankdir=LR size="8,5"
+	A [label="User Interface"]
+	B [label="API Gateway"]
+	C [label="AI Recommendation Engine"]
+	D [label="User Profile Service"]
+	E [label="Product Catalog Service"]
+	F [label="Product Selection Algorithm"]
+	G [label="Machine Learning Model"]
+	A -> B [label="Click \"Surprise Me\""]
+	B -> C [label="Request random product"]
+	D -> C [label="Fetch user interests"]
+	E -> C [label="Fetch product data"]
+	C -> F [label="Generate recommendation"]
+	F -> B [label="Select final product"]
+	B -> A [label="Return product details"]
+	G -> C [label="Update model"]
+	subgraph cluster_0 {
+		label="AI Recommendation Engine"
+		C
+		F
+		G
+	}
+}
