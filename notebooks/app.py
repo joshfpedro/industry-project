@@ -5,6 +5,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import nltk
 import streamlit as st
 import random
+import os
 
 # Attempt to download NLTK data
 try:
@@ -20,10 +21,28 @@ except Exception as e:
 
 @st.cache_data
 def load_data():
-    df = pd.read_csv('../data/rawdata.csv')
-    tag_columns = [f'tag_{i}' for i in range(1, 14)]
-    df['text_features'] = df[tag_columns].fillna('').agg(' '.join, axis=1)
-    return df
+    possible_paths = [
+        '../data/rawdata.csv',
+        'rawdata.csv',
+        '/mount/src/industry-project/data/rawdata.csv',
+        '/mount/src/industry-project/notebooks/rawdata.csv'
+    ]
+    
+    for path in possible_paths:
+        st.write(f"Trying to load data from: {path}")
+        if os.path.exists(path):
+            st.success(f"File found at: {path}")
+            df = pd.read_csv(path)
+            tag_columns = [f'tag_{i}' for i in range(1, 14)]
+            df['text_features'] = df[tag_columns].fillna('').agg(' '.join, axis=1)
+            return df
+    
+    st.error("Unable to locate the data file. Please check the file location and permissions.")
+    st.write("Current working directory:", os.getcwd())
+    st.write("Files in current directory:", os.listdir())
+    
+    # If we can't find the file, return a dummy DataFrame
+    return pd.DataFrame(columns=['product_name', 'price', 'shop_name', 'product_link', 'text_features'])
 
 @st.cache_resource
 def compute_similarity_matrix(df):
@@ -33,7 +52,10 @@ def compute_similarity_matrix(df):
 
 # Load data and compute similarity matrix
 df = load_data()
-cosine_sim = compute_similarity_matrix(df)
+if not df.empty:
+    cosine_sim = compute_similarity_matrix(df)
+else:
+    cosine_sim = None
 
 def summarize_product_name(name):
     if nltk_available:
@@ -113,40 +135,43 @@ def shuffle_product(category):
 
 st.title("Etsy Gift Finder")
 
-recipient_options = ["Girlfriend", "Mom", "Dad", "Grandfather", "Grandmother", "Friend", "Coworker"]
-occasion_options = ["Birthday", "Wedding", "Valentine's Day", "Christmas", "Anniversary", "Graduation"]
+if df.empty:
+    st.warning("The application is running with a dummy dataset due to data loading issues.")
+else:
+    recipient_options = ["Girlfriend", "Mom", "Dad", "Grandfather", "Grandmother", "Friend", "Coworker"]
+    occasion_options = ["Birthday", "Wedding", "Valentine's Day", "Christmas", "Anniversary", "Graduation"]
 
-if 'recipient' not in st.session_state:
-    st.session_state.recipient = recipient_options[0]
-if 'occasion' not in st.session_state:
-    st.session_state.occasion = occasion_options[0]
-if 'recommendations' not in st.session_state:
-    st.session_state.recommendations = None
+    if 'recipient' not in st.session_state:
+        st.session_state.recipient = recipient_options[0]
+    if 'occasion' not in st.session_state:
+        st.session_state.occasion = occasion_options[0]
+    if 'recommendations' not in st.session_state:
+        st.session_state.recommendations = None
 
-st.session_state.recipient = st.selectbox("Who is the gift for?", recipient_options, key='recipient_select')
-st.session_state.occasion = st.selectbox("What's the occasion?", occasion_options, key='occasion_select')
+    st.session_state.recipient = st.selectbox("Who is the gift for?", recipient_options, key='recipient_select')
+    st.session_state.occasion = st.selectbox("What's the occasion?", occasion_options, key='occasion_select')
 
-if st.button("Surprise Me"):
-    update_recommendations()
+    if st.button("Surprise Me"):
+        update_recommendations()
 
-if st.session_state.recommendations is not None:
-    col1, col2, col3 = st.columns(3)
-    columns = [col1, col2, col3]
-    
-    for i, (category, product) in enumerate(st.session_state.recommendations.items()):
-        with columns[i % 3]:
-            st.subheader(category)
-            summarized_name = summarize_product_name(product['product_name'])
-            st.write(summarized_name)
-            
-            placeholder_image = get_placeholder_image(product['product_name'])
-            st.image(placeholder_image, use_column_width=True)
-            
-            st.write(f"Price: ${product['price']}")
-            st.write(f"Shop: {product['shop_name']}")
-            
-            col_button, col_shuffle = st.columns([3, 1])
-            with col_button:
-                st.markdown(f"[View on Etsy]({product['product_link']})")
-            with col_shuffle:
-                st.button("🔀", key=f"shuffle_{i}", on_click=shuffle_product, args=(category,))
+    if st.session_state.recommendations is not None:
+        col1, col2, col3 = st.columns(3)
+        columns = [col1, col2, col3]
+        
+        for i, (category, product) in enumerate(st.session_state.recommendations.items()):
+            with columns[i % 3]:
+                st.subheader(category)
+                summarized_name = summarize_product_name(product['product_name'])
+                st.write(summarized_name)
+                
+                placeholder_image = get_placeholder_image(product['product_name'])
+                st.image(placeholder_image, use_column_width=True)
+                
+                st.write(f"Price: ${product['price']}")
+                st.write(f"Shop: {product['shop_name']}")
+                
+                col_button, col_shuffle = st.columns([3, 1])
+                with col_button:
+                    st.markdown(f"[View on Etsy]({product['product_link']})")
+                with col_shuffle:
+                    st.button("🔀", key=f"shuffle_{i}", on_click=shuffle_product, args=(category,))
