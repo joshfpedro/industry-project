@@ -6,6 +6,8 @@ import nltk
 import streamlit as st
 import random
 import os
+import logging
+
 
 # Attempt to download NLTK data
 try:
@@ -19,6 +21,9 @@ except Exception as e:
     print(f"Failed to download NLTK data: {e}")
     nltk_available = False
 
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+
 @st.cache_data
 def load_data():
     possible_paths = [
@@ -29,17 +34,17 @@ def load_data():
     ]
     
     for path in possible_paths:
-        st.write(f"Trying to load data from: {path}")
+        logging.info(f"Trying to load data from: {path}")
         if os.path.exists(path):
-            st.success(f"File found at: {path}")
+            logging.info(f"File found at: {path}")
             df = pd.read_csv(path)
             tag_columns = [f'tag_{i}' for i in range(1, 14)]
             df['text_features'] = df[tag_columns].fillna('').agg(' '.join, axis=1)
             return df
     
-    st.error("Unable to locate the data file. Please check the file location and permissions.")
-    st.write("Current working directory:", os.getcwd())
-    st.write("Files in current directory:", os.listdir())
+    logging.error("Unable to locate the data file. Please check the file location and permissions.")
+    logging.info(f"Current working directory: {os.getcwd()}")
+    logging.info(f"Files in current directory: {os.listdir()}")
     
     # If we can't find the file, return a dummy DataFrame
     return pd.DataFrame(columns=['product_name', 'price', 'shop_name', 'product_link', 'text_features'])
