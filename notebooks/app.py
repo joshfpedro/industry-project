@@ -7,6 +7,7 @@ import streamlit as st
 import random
 import os
 import logging
+from PIL import Image
 
 
 # Attempt to download NLTK data
