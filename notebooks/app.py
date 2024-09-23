@@ -27,10 +27,10 @@ logging.basicConfig(level=logging.INFO)
 @st.cache_data
 def load_data():
     possible_paths = [
-        '../data/rawdata.csv',
-        'rawdata.csv',
-        '/mount/src/industry-project/data/rawdata.csv',
-        '/mount/src/industry-project/notebooks/rawdata.csv'
+        '../data/rawdata_with_images.csv',
+        'rawdata_with_images.csv',
+        '/mount/src/industry-project/data/rawdata_with_images.csv',
+        '/mount/src/industry-project/notebooks/rawdata_with_images.csv'
     ]
     
     for path in possible_paths:
@@ -47,7 +47,7 @@ def load_data():
     logging.info(f"Files in current directory: {os.listdir()}")
     
     # If we can't find the file, return a dummy DataFrame
-    return pd.DataFrame(columns=['product_name', 'price', 'shop_name', 'product_link', 'text_features'])
+    return pd.DataFrame(columns=['product_name', 'price', 'shop_name', 'product_link', 'text_features', 'image_path'])
 
 @st.cache_resource
 def compute_similarity_matrix(df):
@@ -124,10 +124,11 @@ def get_recommendations_by_category(matching_products):
     
     return recommendations
 
-def get_placeholder_image(seed):
-    random.seed(seed)
-    color = "#{:06x}".format(random.randint(0, 0xFFFFFF))
-    return f"https://via.placeholder.com/300x300/{color[1:]}/FFFFFF?text=Etsy+Product"
+# Use this for random placeholder images
+# def get_placeholder_image(seed):
+#     random.seed(seed)
+#     color = "#{:06x}".format(random.randint(0, 0xFFFFFF))
+#     return f"https://via.placeholder.com/300x300/{color[1:]}/FFFFFF?text=Etsy+Product"
 
 def update_recommendations():
     matching_products = match_tags(st.session_state.recipient, st.session_state.occasion)
@@ -169,8 +170,8 @@ else:
                 summarized_name = summarize_product_name(product['product_name'])
                 st.write(summarized_name)
                 
-                placeholder_image = get_placeholder_image(product['product_name'])
-                st.image(placeholder_image, use_column_width=True)
+                # Use the image_path from the dataset
+                st.image(product['image_path'], use_column_width=True)
                 
                 st.write(f"Price: ${product['price']}")
                 st.write(f"Shop: {product['shop_name']}")
