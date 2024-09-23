@@ -102,7 +102,7 @@ def match_tags(recipient, occasion):
     matching_products = df[df['text_features'].apply(lambda x: any(tag in x.lower() for tag in recipient_synonyms + occasion_synonyms))]
     return matching_products
 
-def get_random_from_top(products, column, ascending=False, top_percent=0.05):
+def get_random_from_top(products, column, ascending=False, top_percent=0.01):
     sorted_products = products.sort_values(column, ascending=ascending)
     top_n = max(1, int(len(sorted_products) * top_percent))
     return sorted_products.iloc[:top_n].sample(n=1).iloc[0]
