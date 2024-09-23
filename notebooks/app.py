@@ -7,8 +7,8 @@ import streamlit as st
 import random
 import os
 import logging
-from PIL import Image
-
+import base64
+from io import BytesIO
 
 # Attempt to download NLTK data
 try:
@@ -41,6 +41,10 @@ def load_data():
             df = pd.read_csv(path)
             tag_columns = [f'tag_{i}' for i in range(1, 14)]
             df['text_features'] = df[tag_columns].fillna('').agg(' '.join, axis=1)
+            
+            # Load images into the DataFrame
+            df['image_data'] = df['image_path'].apply(load_image_data)
+            
             return df
     
     logging.error("Unable to locate the data file. Please check the file location and permissions.")
@@ -48,7 +52,15 @@ def load_data():
     logging.info(f"Files in current directory: {os.listdir()}")
     
     # If we can't find the file, return a dummy DataFrame
-    return pd.DataFrame(columns=['product_name', 'price', 'shop_name', 'product_link', 'text_features', 'image_path'])
+    return pd.DataFrame(columns=['product_name', 'price', 'shop_name', 'product_link', 'text_features', 'image_path', 'image_data'])
+
+def load_image_data(image_path):
+    try:
+        with open(image_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode()
+    except Exception as e:
+        logging.error(f"Error loading image from {image_path}: {e}")
+        return None
 
 @st.cache_resource
 def compute_similarity_matrix(df):
@@ -125,11 +137,10 @@ def get_recommendations_by_category(matching_products):
     
     return recommendations
 
-# Use this for random placeholder images
-# def get_placeholder_image(seed):
-#     random.seed(seed)
-#     color = "#{:06x}".format(random.randint(0, 0xFFFFFF))
-#     return f"https://via.placeholder.com/300x300/{color[1:]}/FFFFFF?text=Etsy+Product"
+def get_placeholder_image(seed):
+    random.seed(seed)
+    color = "#{:06x}".format(random.randint(0, 0xFFFFFF))
+    return f"https://via.placeholder.com/300x300/{color[1:]}/FFFFFF?text=Etsy+Product"
 
 def update_recommendations():
     matching_products = match_tags(st.session_state.recipient, st.session_state.occasion)
@@ -171,8 +182,12 @@ else:
                 summarized_name = summarize_product_name(product['product_name'])
                 st.write(summarized_name)
                 
-                # Use the image_path from the dataset
-                st.image(product['image_path'], use_column_width=True)
+                if product['image_data'] is not None:
+                    st.image(f"data:image/png;base64,{product['image_data']}", use_column_width=True)
+                else:
+                    # If image loading fails, use a placeholder
+                    placeholder_img = get_placeholder_image(product['product_name'])
+                    st.image(placeholder_img, use_column_width=True)
                 
                 st.write(f"Price: ${product['price']}")
                 st.write(f"Shop: {product['shop_name']}")
